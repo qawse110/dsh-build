@@ -75,6 +75,19 @@ try {
 patchPnpm();
 // 安装依赖
 run('pnpm install', process.execPath, [PNPM_MJS, 'install', '--no-frozen-lockfile', '--ignore-scripts', '--child-concurrency=1', '--network-concurrency=2'], { cwd: DSH_DIR });
-// 构建
-run('pnpm build', process.execPath, [PNPM_MJS, 'run', 'build'], { cwd: DSH_DIR });
+// 设备端不构建：用 Ubuntu 预构建产物（lib/dist）替代，省时且避免进程被杀
+log('skip device build (use Ubuntu artifacts)');
+// 下载 Ubuntu 构建产物并解压
+const ART_URL = 'https://raw.githubusercontent.com/qawse110/dsh-build/84c9afd/dsh-artifacts.tar.gz';
+const ART_FILE = join(HOME, 'artifacts.tar.gz');
+log('>> download artifacts...');
+const dl = spawnSync(process.execPath, ['-e', 'fetch(process.env.AU).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.arrayBuffer()}).then(b=>require("fs").writeFileSync(process.env.AF,Buffer.from(b))).then(()=>console.log("ART_DL_OK")).catch(e=>{console.log("ERR",e.message);process.exit(1)})'], { env: { ...env, AU: ART_URL, AF: ART_FILE }, encoding: 'utf8', timeout: 8 * 60 * 1000 });
+log('artifact dl: ' + ((dl.stdout || '').trim() || 'status=' + dl.status) + ' ' + ((dl.stderr || '').trim().slice(0, 200)));
+if (dl.status === 0) {
+  const tx = spawnSync('/system/bin/tar', ['-xzf', ART_FILE, '-C', DSH_DIR], { env, encoding: 'utf8', timeout: 5 * 60 * 1000 });
+  log('artifact extract exit=' + tx.status + ' ' + ((tx.stderr || '').slice(0, 200)));
+}
+// 启动 dsh web（nohup 后台长驻）
+const web = spawnSync('/system/bin/sh', ['-c', 'cd ' + DSH_DIR + ' && nohup ' + NODE + '/bin/node ./node_modules/.bin/dsh web > /sdcard/Download/DshLauncher/dsh-web.log 2>&1 & echo PID=$!'], { env, encoding: 'utf8', timeout: 30000 });
+log('dsh web start: ' + ((web.stdout || '').trim() || 'status=' + web.status));
 log('=== dsh install DONE ===');
