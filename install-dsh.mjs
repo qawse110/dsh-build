@@ -55,7 +55,7 @@ function patchPnpm() {
   try {
     const s0 = readFileSync(PNPM_MJS, 'utf8');
     if (s0.indexOf('PNPM_EROFS_PATCHED') >= 0) { log('pnpm already patched'); return true; }
-    const needle = "EXDEV" || err2.code === "EACCES" || err2.code === "EPERM";
+    const needle = '"EXDEV" || err2.code === "EACCES" || err2.code === "EPERM"';
     if (s0.indexOf(needle) < 0) { log('WARN pnpm patch needle not found'); return false; }
     writeFileSync(PNPM_MJS, s0.split(needle).join(needle + ' || err2.code === "EROFS"'));
     log('pnpm patched for EROFS');
