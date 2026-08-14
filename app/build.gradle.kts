@@ -56,6 +56,12 @@ android {
     packaging {
         jniLibs.useLegacyPackaging = false
     }
+
+    // targetSdk=28 用于对齐 termux 的 SELinux 域(untrusted_app_27)实验，
+    // 低于 Play 商店的 targetSdk 要求，需放行该 lint 检查
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
 }
 
 dependencies {
