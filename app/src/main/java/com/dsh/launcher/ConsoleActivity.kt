@@ -167,29 +167,41 @@ class ConsoleActivity : AppCompatActivity() {
     private fun runDshFlow() {
         setState("启动 dsh 安装…")
         appendLine(">> 1/4 确保内置 Node 运行时…")
+        val flowLog = File("/sdcard/Download/DshLauncher/dsh-flow.log")
+        fun fl(msg: String) {
+            runCatching {
+                flowLog.appendText("${System.currentTimeMillis()} $msg\n")
+            }
+            appendLine(msg)
+        }
         thread {
             try {
                 val nodeDir = NodeRuntime.ensureExtracted(this)
-                appendLine("   Node 就绪: $nodeDir")
-                appendLine(">> 2/4 下载 installer…")
-                // 用 node fetch 下载 install-dsh.mjs（GitHub raw）
+                flowLog.parentFile?.mkdirs()
+                runCatching { flowLog.writeText("") }
+                fl("OK 1/4 node=$nodeDir")
+                fl(">> 2/4 下载 installer…")
                 val dlCmd = "$nodeDir/bin/node -e " +
                     "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/main/install-dsh.mjs')" +
                     ".then(r=>r.text()).then(t=>require('fs').writeFileSync('" +
                     File(filesDir, "install-dsh.mjs").absolutePath +
                     "',t)).then(()=>console.log('DL_OK')).catch(e=>{console.log('ERR',e.message);process.exit(1)})\""
                 runCommand(dlCmd)
-                appendLine(">> 3/4 安装依赖并构建（pnpm install + build，耗时较长）…")
                 val installScript = File(filesDir, "install-dsh.mjs")
-                if (installScript.exists()) {
-                    runCommand("$nodeDir/bin/node ${installScript.absolutePath}")
-                    appendLine(">> 4/4 启动 dsh web…")
-                    startDshWeb(nodeDir)
-                } else {
-                    appendLine("✗ installer 未下载成功")
+                if (!installScript.exists()) {
+                    fl("FAIL 2/4 installer not downloaded")
+                    setState("出错")
+                    return@thread
                 }
+                fl("OK 2/4 installer downloaded")
+                fl(">> 3/4 pnpm install + build (long)…")
+                runCommand("$nodeDir/bin/node ${installScript.absolutePath}")
+                fl("OK 3/4 install script finished")
+                fl(">> 4/4 start dsh web…")
+                startDshWeb(nodeDir)
+                fl("OK 4/4 dsh web started")
             } catch (t: Throwable) {
-                appendLine("✗ dsh 流程失败：${t.message}")
+                fl("FAIL: ${t.message}")
                 setState("出错")
             }
         }
