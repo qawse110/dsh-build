@@ -18,6 +18,10 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           sdk-packages: platform-tools,platforms;android-36,build-tools;36.0.0
+      - name: Decode keystore
+        run: |
+          echo "$DSH_KEYSTORE_B64" | base64 -d > "$DSH_KEYSTORE_FILE"
+          ls -la "$DSH_KEYSTORE_FILE"
       - name: Build release APK
         run: |
           chmod +x ./gradlew

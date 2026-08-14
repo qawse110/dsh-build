@@ -17,13 +17,12 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            // CI 注入 DSH_KEYSTORE_B64/DSH_KEYSTORE_PASS 时用正式 release 签名，
-            // 否则回退 debug 签名（本地可构建）。正式签名是绕过 ColorOS 对
-            // debug 签名 app 的 exec 过滤的关键假设验证。
-            val b64 = System.getenv("DSH_KEYSTORE_B64")
-            if (!b64.isNullOrBlank()) {
-                val ksFile = File(System.getenv("DSH_KEYSTORE_FILE") ?: "release.keystore")
-                ksFile.writeBytes(java.util.Base64.getDecoder().decode(b64))
+            // CI 里 workflow 已把 DSH_KEYSTORE_B64 解码为 DSH_KEYSTORE_FILE 指向的
+            // release.keystore 文件；文件存在时用正式 release 签名，否则回退 debug
+            // 签名（本地可构建）。正式签名是绕过 ColorOS 对 debug 签名 app 的
+            // exec 过滤的关键假设验证。
+            val ksFile = File(System.getenv("DSH_KEYSTORE_FILE") ?: "release.keystore")
+            if (ksFile.isFile) {
                 signingConfig = signingConfigs.create("release") {
                     storeFile = ksFile
                     storePassword = System.getenv("DSH_KEYSTORE_PASS") ?: "dshlauncher123"
