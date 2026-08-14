@@ -67,7 +67,7 @@ function patchPnpm() {
 // 安装依赖
 patchPnpm();
 // 安装依赖
-run('pnpm install', process.execPath, [PNPM_MJS, 'install', '--no-frozen-lockfile'], { cwd: DSH_DIR });
+run('pnpm install', process.execPath, [PNPM_MJS, 'install', '--no-frozen-lockfile', '--ignore-scripts'], { cwd: DSH_DIR });
 // 构建
 run('pnpm build', process.execPath, [PNPM_MJS, 'run', 'build'], { cwd: DSH_DIR });
 log('=== dsh install DONE ===');
