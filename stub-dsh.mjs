@@ -16,9 +16,10 @@ try {
 } catch (e) { log('WARN stub: ' + e.message); }
 const PATCH = join(HOME, 'patch-koffi.yml');
 try {
-  writeFileSync(PATCH, '- id: subprocess\n  disabled: true\n- id: session-persistence-jsonl\n  disabled: true\n- id: directory-picker\n  disabled: true\n- id: attachment-local\n  disabled: true\n- id: sandbox\n  disabled: true\n');
-  log('patch ok');
+  // v2: 零禁用 —— stub 已让 koffi/node-pty 可加载，插件正常注册服务，避免消费者 pending。
+  writeFileSync(PATCH, '# native stubs in place, no disables\n');
+  log('patch ok (empty)');
 } catch (e) { log('WARN patch: ' + e.message); }
-const web = spawnSync('/system/bin/sh', ['-c', 'cd ' + DSH_DIR + ' && nohup ' + NODE + '/bin/node apps/cli/lib/bin.js web --patch ' + PATCH + ' > /sdcard/Download/DshLauncher/dsh-web.log 2>&1 & echo PID=$!'], { env, encoding: 'utf8', timeout: 30000 });
+const web = spawnSync('/system/bin/sh', ['-c', 'cd ' + DSH_DIR + ' && nohup ' + NODE + '/bin/node apps/cli/lib/bin.js web > /sdcard/Download/DshLauncher/dsh-web.log 2>&1 & echo PID=$!'], { env, encoding: 'utf8', timeout: 30000 });
 log('web: ' + ((web.stdout || '').trim() || 'status=' + web.status));
 log('=== fixup done ===');
