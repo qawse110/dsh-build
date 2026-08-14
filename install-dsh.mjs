@@ -17,6 +17,7 @@ const env = {
   LD_LIBRARY_PATH: join(NODE, 'lib'),
   HOME,
   TMPDIR: TMP, // files/tmp 可写目录（node 目录只读）
+  TMP: TMP, TEMP: TMP,
   OPENSSL_CONF: '/dev/null',
   PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
 };
