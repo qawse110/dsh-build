@@ -33,8 +33,10 @@ class ConsoleActivity : AppCompatActivity() {
         setContentView(buildUi())
         appendLine("== 内置命令控制台（基于 ProcessBuilder）==")
         val runNode = intent?.getBooleanExtra("node", false) ?: false
+        val runDsh = intent?.getBooleanExtra("dsh", false) ?: false
         val cmd = intent?.getStringExtra("cmd")
         when {
+            runDsh -> { appendLine(">> 触发 dsh 安装+启动…"); AppLog.i("Console", "auto dsh run"); runDshFlow() }
             runNode -> { appendLine(">> 触发内置 Node 解压+运行…"); AppLog.i("Console", "auto node run"); runNodeCmd() }
             !cmd.isNullOrBlank() -> {
                 appendLine(">> " + cmd)
@@ -151,6 +153,73 @@ class ConsoleActivity : AppCompatActivity() {
                 setState("出错")
             }
         }
+    }
+
+    /**
+     * dsh 一键安装+启动流程（内嵌，避免 shell↔am 传长命令）。
+     * 通过 ConsoleActivity 的 intent `--ez dsh true` 触发，供自动化/按钮调用。
+     * 各阶段用短命令经 runCommand 逐段执行：
+     *   1) 确保内置 node 解压
+     *   2) 用 node 下载 install-dsh.mjs 到私有目录（GitHub raw）
+     *   3) node 执行 install-dsh.mjs（pnpm install + build），日志写共享目录
+     *   4) 启动 dsh web（后台长驻）
+     */
+    private fun runDshFlow() {
+        setState("启动 dsh 安装…")
+        appendLine(">> 1/4 确保内置 Node 运行时…")
+        thread {
+            try {
+                val nodeDir = NodeRuntime.ensureExtracted(this)
+                appendLine("   Node 就绪: $nodeDir")
+                appendLine(">> 2/4 下载 installer…")
+                // 用 node fetch 下载 install-dsh.mjs（GitHub raw）
+                val dlCmd = "$nodeDir/bin/node -e " +
+                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/main/install-dsh.mjs')" +
+                    ".then(r=>r.text()).then(t=>require('fs').writeFileSync('" +
+                    File(filesDir, "install-dsh.mjs").absolutePath +
+                    "',t)).then(()=>console.log('DL_OK')).catch(e=>{console.log('ERR',e.message);process.exit(1)})\""
+                runCommand(dlCmd)
+                appendLine(">> 3/4 安装依赖并构建（pnpm install + build，耗时较长）…")
+                val installScript = File(filesDir, "install-dsh.mjs")
+                if (installScript.exists()) {
+                    runCommand("$nodeDir/bin/node ${installScript.absolutePath}")
+                    appendLine(">> 4/4 启动 dsh web…")
+                    startDshWeb(nodeDir)
+                } else {
+                    appendLine("✗ installer 未下载成功")
+                }
+            } catch (t: Throwable) {
+                appendLine("✗ dsh 流程失败：${t.message}")
+                setState("出错")
+            }
+        }
+    }
+
+    /** 后台启动 dsh web（nohup 使其脱离本控制台进程）。 */
+    private fun startDshWeb(nodeDir: File) {
+        val dshHome = File(filesDir, "deepseek-harness-master")
+        if (!File(dshHome, "node_modules/.bin/dsh").exists()) {
+            appendLine("✗ 未找到 dsh 可执行文件（构建可能未完成）")
+            setState("出错")
+            return
+        }
+        // 生成启动脚本到共享目录，用 sh 后台执行
+        val launcher = File(getExternalFilesDir(null) ?: filesDir, "dsh-web.sh")
+        launcher.parentFile?.mkdirs()
+        launcher.writeText(
+            "#!/system/bin/sh\n" +
+            "export LD_LIBRARY_PATH=${nodeDir.absolutePath}/lib\n" +
+            "export HOME=${filesDir.absolutePath}\n" +
+            "export TMPDIR=${nodeDir.absolutePath}/tmp\n" +
+            "export OPENSSL_CONF=/dev/null\n" +
+            "export PATH=${nodeDir.absolutePath}/bin:/system/bin:/bin\n" +
+            "cd $dshHome\n" +
+            "nohup ${nodeDir.absolutePath}/bin/node ./node_modules/.bin/dsh web > /sdcard/Download/DshLauncher/dsh-web.log 2>&1 &\n" +
+            "echo DSH_WEB_PID=$!\n"
+        )
+        launcher.setExecutable(true)
+        runCommand("/system/bin/sh ${launcher.absolutePath}")
+        appendLine(">> dsh web 后台启动，日志：/sdcard/Download/DshLauncher/dsh-web.log")
     }
 
     /** 通过 ProcessBuilder 执行命令，实时回显输出。 */
