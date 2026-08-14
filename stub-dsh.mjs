@@ -1,0 +1,24 @@
+import { spawnSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+const NODE = '/data/user/0/com.dsh.launcher/files/node';
+const HOME = '/data/user/0/com.dsh.launcher/files';
+const DSH_DIR = join(HOME, 'deepseek-harness-master');
+const OUT = '/sdcard/Download/DshLauncher/install_log.txt';
+function log(m) { const l = `${new Date().toISOString()} ${m}`; console.log(l); try { writeFileSync(OUT, l + '\n', { flag: 'a' }); } catch {} }
+const env = { ...process.env, LD_LIBRARY_PATH: join(NODE, 'lib'), HOME, TMPDIR: join(HOME, 'tmp'), TMP: join(HOME, 'tmp'), TEMP: join(HOME, 'tmp'), OPENSSL_CONF: '/dev/null', PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':') };
+const KSTUB = 'Y29uc3Qgc3ViPW5ldyBQcm94eSh7fSx7Z2V0OigpPT4oKT0+bnVsbH0pO2NvbnN0IGtvZmZpPXtsb2FkOigpPT5zdWIsZGVjb2RlOigpPT5udWxsLGVuY29kZTooKT0+bnVsbCxzaXplb2Y6KCk9Pm51bGwsYWxpZ25vZjooKT0+bnVsbCxvZmZzZXRvZjooKT0+bnVsbCxmdW5jdGlvbjooKT0+bnVsbCxzdHJ1Y3Q6KCk9Pm51bGwsdW5pb246KCk9Pm51bGwsZW51bTooKT0+bnVsbCx0eXBlZGVmOigpPT5udWxsLHBvaW50ZXI6KCk9Pm51bGwscmVnaXN0ZXI6KCk9Pm51bGwsS29mZmlFcnJvcjpjbGFzcyBleHRlbmRzIEVycm9ye319O2V4cG9ydCBkZWZhdWx0IGtvZmZpOw==';
+const PSTUB = 'Y29uc3R7RXZlbnRFbWl0dGVyfT1yZXF1aXJlKCdldmVudHMnKTtjbGFzcyBGIGV4dGVuZHMgRXZlbnRFbWl0dGVye2NvbnN0cnVjdG9yKCl7c3VwZXIoKTt0aGlzLnBpZD0wO3RoaXMuZXhpdENvZGU9MH13cml0ZSgpe31raWxsKCl7fXJlc2l6ZSgpe31jbGVhcigpe31jbG9zZSgpe31vbkV4aXQoYyl7aWYoYyljKHtleGl0Q29kZTowLHNpZ25hbDp1bmRlZmluZWR9KX19bW9kdWxlLmV4cG9ydHM9e3NwYXduKCl7Y29uc3QgeD1uZXcgRigpO3Byb2Nlc3MubmV4dFRpY2soKCk9PnguZW1pdCgnZXhpdCcse2V4aXRDb2RlOjAsc2lnbmFsOnVuZGVmaW5lZH0pKTtyZXR1cm4geH0sZm9yaygpe3JldHVybiBuZXcgRigpfSxvcGVuKCl7cmV0dXJue21hc3RlcjpuZXcgRigpLHNsYXZlOm5ldyBGKCl9fX07';
+try {
+  writeFileSync(join(DSH_DIR, 'node_modules/.pnpm/koffi@3.1.1/node_modules/koffi/index.js'), Buffer.from(KSTUB, 'base64'));
+  writeFileSync(join(DSH_DIR, 'node_modules/.pnpm/node-pty@1.1.0_patch_hash=7a0c04f1f49d798a9ffe2f7f414c01064a44ca2489772d0c3e1235ab336755e6/node_modules/node-pty/lib/index.js'), Buffer.from(PSTUB, 'base64'));
+  log('stubs ok');
+} catch (e) { log('WARN stub: ' + e.message); }
+const PATCH = join(HOME, 'patch-koffi.yml');
+try {
+  writeFileSync(PATCH, '- id: subprocess\n  disabled: true\n- id: session-persistence-jsonl\n  disabled: true\n- id: directory-picker\n  disabled: true\n- id: attachment-local\n  disabled: true\n- id: sandbox\n  disabled: true\n');
+  log('patch ok');
+} catch (e) { log('WARN patch: ' + e.message); }
+const web = spawnSync('/system/bin/sh', ['-c', 'cd ' + DSH_DIR + ' && nohup ' + NODE + '/bin/node apps/cli/lib/bin.js web --patch ' + PATCH + ' > /sdcard/Download/DshLauncher/dsh-web.log 2>&1 & echo PID=$!'], { env, encoding: 'utf8', timeout: 30000 });
+log('web: ' + ((web.stdout || '').trim() || 'status=' + web.status));
+log('=== fixup done ===');
