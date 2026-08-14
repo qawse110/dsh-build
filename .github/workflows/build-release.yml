@@ -5,6 +5,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DSH_KEYSTORE_B64: ${{ secrets.DSH_KEYSTORE_B64 }}
+      DSH_KEYSTORE_PASS: ${{ secrets.DSH_KEYSTORE_PASS }}
+      DSH_KEYSTORE_FILE: ${{ github.workspace }}/release.keystore
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

@@ -17,7 +17,22 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            // CI 注入 DSH_KEYSTORE_B64/DSH_KEYSTORE_PASS 时用正式 release 签名，
+            // 否则回退 debug 签名（本地可构建）。正式签名是绕过 ColorOS 对
+            // debug 签名 app 的 exec 过滤的关键假设验证。
+            val b64 = System.getenv("DSH_KEYSTORE_B64")
+            if (!b64.isNullOrBlank()) {
+                val ksFile = File(System.getenv("DSH_KEYSTORE_FILE") ?: "release.keystore")
+                ksFile.writeBytes(java.util.Base64.getDecoder().decode(b64))
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = ksFile
+                    storePassword = System.getenv("DSH_KEYSTORE_PASS") ?: "dshlauncher123"
+                    keyAlias = "dsh"
+                    keyPassword = System.getenv("DSH_KEYSTORE_PASS") ?: "dshlauncher123"
+                }
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -50,4 +65,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
+}
+aterial:1.12.0")
 }
