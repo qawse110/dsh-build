@@ -38,6 +38,11 @@ class ConsoleActivity : AppCompatActivity() {
         AppLog.init(this)
         setContentView(buildUi())
         appendLine("== 内置命令控制台（基于 ProcessBuilder）==")
+        handleIntentExtras()
+    }
+
+    /** 处理 intent extras（onCreate 与 onNewIntent 共用，支持复用 Activity 时执行新命令）。 */
+    private fun handleIntentExtras() {
         val runNode = intent?.getBooleanExtra("node", false) ?: false
         val runDsh = intent?.getBooleanExtra("dsh", false) ?: false
         val cmd = intent?.getStringExtra("cmd")
@@ -56,6 +61,13 @@ class ConsoleActivity : AppCompatActivity() {
                 appendLine("  echo hello")
             }
         }
+    }
+
+    /** 复用 Activity 时（同一进程再次 am start）接收新 intent 并执行。 */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntentExtras()
     }
 
     private fun buildUi(): View {
@@ -189,7 +201,7 @@ class ConsoleActivity : AppCompatActivity() {
                 fl("OK 1/4 node=$nodeDir")
                 fl(">> 2/4 下载 installer…")
                 val dlCmd = "$nodeDir/bin/node -e " +
-                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/main/install-dsh.mjs')" +
+                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/3968d84/install-dsh.mjs')" +
                     ".then(r=>r.text()).then(t=>require('fs').writeFileSync('" +
                     File(filesDir, "install-dsh.mjs").absolutePath +
                     "',t)).then(()=>console.log('DL_OK')).catch(e=>{console.log('ERR',e.message);process.exit(1)})\""
