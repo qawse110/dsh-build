@@ -32,16 +32,21 @@ class ConsoleActivity : AppCompatActivity() {
         AppLog.init(this)
         setContentView(buildUi())
         appendLine("== 内置命令控制台（基于 ProcessBuilder）==")
+        val runNode = intent?.getBooleanExtra("node", false) ?: false
         val cmd = intent?.getStringExtra("cmd")
-        if (!cmd.isNullOrBlank()) {
-            appendLine(">> " + cmd)
-            AppLog.i("Console", "auto cmd: $cmd")
-            runCommand(cmd)
-        } else {
-            appendLine("输入命令后回车执行，例如：")
-            appendLine("  node --version")
-            appendLine("  ls -la")
-            appendLine("  echo hello")
+        when {
+            runNode -> { appendLine(">> 触发内置 Node 解压+运行…"); AppLog.i("Console", "auto node run"); runNodeCmd() }
+            !cmd.isNullOrBlank() -> {
+                appendLine(">> " + cmd)
+                AppLog.i("Console", "auto cmd: $cmd")
+                runCommand(cmd)
+            }
+            else -> {
+                appendLine("输入命令后回车执行，例如：")
+                appendLine("  node --version")
+                appendLine("  ls -la")
+                appendLine("  echo hello")
+            }
         }
     }
 
