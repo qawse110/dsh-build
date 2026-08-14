@@ -11,12 +11,12 @@ const DSH_DIR = join(HOME, 'deepseek-harness-master');
 const PNPM_MJS = join(HOME, '.tools/lib/node_modules/pnpm/bin/pnpm.mjs');
 const OUT = '/sdcard/Download/DshLauncher/install_log.txt';
 
-const TMP = join(NODE, 'tmp');
+const TMP = join(HOME, 'tmp');
 const env = {
   ...process.env,
   LD_LIBRARY_PATH: join(NODE, 'lib'),
   HOME,
-  TMPDIR: TMP,
+  TMPDIR: TMP, // files/tmp 可写目录（node 目录只读）
   OPENSSL_CONF: '/dev/null',
   PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
 };
