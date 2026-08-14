@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const NODE = '/data/user/0/com.dsh.launcher/files/node';
 const HOME = '/data/user/0/com.dsh.launcher/files';
 const DSH_DIR = join(HOME, 'deepseek-harness-master');
-const PNPM_MJS = join(HOME, '.tools/lib/node_modules/pnpm/bin/pnpm.mjs');
+const PNPM_MJS = join(HOME, '.tools/lib/node_modules/pnpm/dist/pnpm.mjs');
 const OUT = '/sdcard/Download/DshLauncher/install_log.txt';
 
 const TMP = join(HOME, 'tmp');
