@@ -201,7 +201,7 @@ class ConsoleActivity : AppCompatActivity() {
                 fl("OK 1/4 node=$nodeDir")
                 fl(">> 2/4 下载 installer…")
                 val dlCmd = "$nodeDir/bin/node -e " +
-                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/eaf223c/stub-dsh.mjs')" +
+                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/c1df74e/stub-dsh.mjs')" +
                     ".then(r=>r.text()).then(t=>require('fs').writeFileSync('" +
                     File(filesDir, "install-dsh.mjs").absolutePath +
                     "',t)).then(()=>console.log('DL_OK')).catch(e=>{console.log('ERR',e.message);process.exit(1)})\""
