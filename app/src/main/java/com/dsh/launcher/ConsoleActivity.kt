@@ -207,10 +207,11 @@ class ConsoleActivity : AppCompatActivity() {
                 fl(">> 4/4 start dsh web…")
                 startDshWeb(nodeDir)
                 fl("OK 4/4 dsh web started")
-                stopKeepAlive()
+                // 注意：runCommand 异步，build 可能仍在进行；keepalive 保持常驻，
+                // 由 install-dsh.mjs 完成后写入标记，外部轮询 dsh-flow.log/install_log 判定。
+                // stopKeepAlive() 不能在此调用，否则 build 期间失去保活会被系统回收。
             } catch (t: Throwable) {
                 fl("FAIL: ${t.message}")
-                stopKeepAlive()
                 setState("出错")
             }
         }
