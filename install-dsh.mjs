@@ -19,6 +19,8 @@ const env = {
   TMPDIR: TMP, // files/tmp 可写目录（node 目录只读）
   TMP: TMP, TEMP: TMP,
   OPENSSL_CONF: '/dev/null',
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
+  PUPPETEER_SKIP_DOWNLOAD: '1',
   PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
 };
 
