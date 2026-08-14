@@ -21,7 +21,7 @@ const env = {
   OPENSSL_CONF: '/dev/null',
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
   PUPPETEER_SKIP_DOWNLOAD: '1',
-  PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
+  PATH: [join(HOME, '.tools/bin'), join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
 };
 
 function log(msg) {
@@ -64,6 +64,13 @@ function patchPnpm() {
     return true;
   } catch (e) { log('WARN pnpm patch failed: ' + e.message); return false; }
 }
+// 创建 pnpm 命令包装（供 build 脚本内 pnpm 命令使用）
+try {
+  const pdir = join(HOME, ".tools/bin");
+  mkdirSync(pdir, { recursive: true });
+  writeFileSync(join(pdir, "pnpm"), "#!/system/bin/sh\nexec " + process.execPath + " " + PNPM_MJS + " \"$@\"\n", { mode: 0o555 });
+  log("pnpm wrapper created");
+} catch (e) { log("WARN pnpm wrapper failed: " + e.message); }
 // 安装依赖
 patchPnpm();
 // 安装依赖
