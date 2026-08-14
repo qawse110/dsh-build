@@ -199,20 +199,24 @@ class ConsoleActivity : AppCompatActivity() {
                 flowLog.parentFile?.mkdirs()
                 runCatching { flowLog.writeText("") }
                 fl("OK 1/4 node=$nodeDir")
-                fl(">> 2/4 下载 installer…")
-                val dlCmd = "$nodeDir/bin/node -e " +
-                    "\"fetch('https://raw.githubusercontent.com/qawse110/dsh-build/c1df74e/stub-dsh.mjs')" +
-                    ".then(r=>r.text()).then(t=>require('fs').writeFileSync('" +
-                    File(filesDir, "install-dsh.mjs").absolutePath +
-                    "',t)).then(()=>console.log('DL_OK')).catch(e=>{console.log('ERR',e.message);process.exit(1)})\""
-                runCommand(dlCmd)
+                fl(">> 2/4 从 APK assets 读取 stub 脚本…")
+                // 本地打包：直接读 assets/stub-dsh.mjs，不依赖网络下载
                 val installScript = File(filesDir, "install-dsh.mjs")
-                if (!installScript.exists()) {
-                    fl("FAIL 2/4 installer not downloaded")
+                try {
+                    assets.open("stub-dsh.mjs").use { input ->
+                        installScript.outputStream().use { output -> input.copyTo(output) }
+                    }
+                } catch (t: Throwable) {
+                    fl("FAIL 2/4 assets copy: ${t.message}")
                     setState("出错")
                     return@thread
                 }
-                fl("OK 2/4 installer downloaded")
+                if (!installScript.exists()) {
+                    fl("FAIL 2/4 installer missing")
+                    setState("出错")
+                    return@thread
+                }
+                fl("OK 2/4 installer from assets")
                 fl(">> 3/4 pnpm install + build (long)…")
                 runCommand("$nodeDir/bin/node ${installScript.absolutePath}")
                 fl("OK 3/4 install script finished")
