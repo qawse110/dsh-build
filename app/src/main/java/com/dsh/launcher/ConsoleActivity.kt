@@ -1,6 +1,11 @@
 package com.dsh.launcher
 
 import android.os.Bundle
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.os.IBinder
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -176,6 +181,7 @@ class ConsoleActivity : AppCompatActivity() {
         }
         thread {
             try {
+                startKeepAlive()
                 val nodeDir = NodeRuntime.ensureExtracted(this)
                 flowLog.parentFile?.mkdirs()
                 runCatching { flowLog.writeText("") }
@@ -200,11 +206,28 @@ class ConsoleActivity : AppCompatActivity() {
                 fl(">> 4/4 start dsh web…")
                 startDshWeb(nodeDir)
                 fl("OK 4/4 dsh web started")
+                stopKeepAlive()
             } catch (t: Throwable) {
                 fl("FAIL: ${t.message}")
+                stopKeepAlive()
                 setState("出错")
             }
         }
+    }
+
+    /** 前台服务保活，防止长时间 build 被系统回收。 */
+    private fun startKeepAlive() {
+        try {
+            val i = Intent(this, BuildKeepAliveService::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
+            AppLog.i("Console", "keepalive started")
+        } catch (t: Throwable) {
+            AppLog.e("Console", "keepalive start failed: ${t.message}")
+        }
+    }
+
+    private fun stopKeepAlive() {
+        runCatching { stopService(Intent(this, BuildKeepAliveService::class.java)) }
     }
 
     /** 后台启动 dsh web（nohup 使其脱离本控制台进程）。 */
@@ -290,4 +313,41 @@ class ConsoleActivity : AppCompatActivity() {
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+}
+
+/** dsh 安装/构建期间的前台保活服务，防止长时间 build 被系统回收。 */
+class BuildKeepAliveService : Service() {
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val builder: Notification.Builder =
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                val ch = NotificationChannel(
+                    "dsh", "dsh 服务", NotificationManager.IMPORTANCE_LOW
+                )
+                nm.createNotificationChannel(ch)
+                Notification.Builder(this, "dsh")
+            } else {
+                @Suppress("DEPRECATION")
+                Notification.Builder(this)
+            }
+        @Suppress("DEPRECATION")
+        val n = builder
+            .setContentTitle("dsh 安装中")
+            .setContentText("正在构建 DeepSeek Harness，请稍候…")
+            .setSmallIcon(android.R.drawable.ic_popup_sync)
+            .setOngoing(true)
+            .build()
+        startForeground(1, n)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        runCatching {
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(1)
+        }
+    }
 }

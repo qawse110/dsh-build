@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- 用于通过 Termux 的 RUN_COMMAND 意图在后台启动/停止 dsh 服务 -->
     <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
     <!-- 部署脚本到共享存储 /sdcard/Download/DshLauncher/scripts 供 Termux 执行 -->
@@ -47,6 +49,10 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name=".BuildKeepAliveService"
+            android:exported="false" />
     </application>
 
 </manifest>
