@@ -11,11 +11,12 @@ const DSH_DIR = join(HOME, 'deepseek-harness-master');
 const PNPM_MJS = join(HOME, '.tools/lib/node_modules/pnpm/bin/pnpm.mjs');
 const OUT = '/sdcard/Download/DshLauncher/install_log.txt';
 
+const TMP = join(NODE, 'tmp');
 const env = {
   ...process.env,
   LD_LIBRARY_PATH: join(NODE, 'lib'),
   HOME,
-  TMPDIR: join(NODE, 'tmp'),
+  TMPDIR: TMP,
   OPENSSL_CONF: '/dev/null',
   PATH: [join(NODE, 'bin'), '/system/bin', '/bin'].join(':'),
 };
@@ -36,7 +37,12 @@ function run(label, cmd, args, opts = {}) {
   return r;
 }
 
-try { mkdirSync(join(NODE, 'tmp'), { recursive: true }); } catch {}
+try {
+  mkdirSync(TMP, { recursive: true });
+  writeFileSync(join(TMP, 'probe.txt'), 'ok');
+} catch (e) {
+  log('WARN mkdir tmp failed: ' + e.message);
+}
 
 log('=== dsh install start ===');
 log(`node=${process.version} dsh_dir=${existsSync(DSH_DIR)} pnpm=${existsSync(PNPM_MJS)}`);
